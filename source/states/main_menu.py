@@ -7,10 +7,20 @@ from ..components import info
 
 class MainMenu:
     def __init__(self):
+        game_info = {
+            'socker': 0,
+            'coin': 0,
+            'lives': 3,
+            'player_state': 'small'
+        }
+        self.start(game_info)
+
+    def start(self, game_info):
+        self.game_info = game_info
         self.setup_background()
         self.setup_player()
         self.setup_cursor()
-        self.info = info.Info('main_menu')
+        self.info = info.Info('main_menu', self.game_info)
         self.finished = False
         self.next = 'load_screen'
 

@@ -1,2 +1,4 @@
 .idea/
-*.pyc
+source/__pycache__/
+source/components/__pycache__/
+source/states/__pycache__/
