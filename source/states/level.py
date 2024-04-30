@@ -1,4 +1,4 @@
-from ..components import info, player, stuff, brick, box
+from ..components import info, player, stuff, brick, box, enemy
 from .. import tools, setup
 from .. import constants as C
 import pygame
@@ -17,6 +17,7 @@ class Level:
         self.setup_player()
         self.setup_ground_items()
         self.setup_bricks_and_boxes()
+        self.setup_enemies()
 
     def load_map_data(self):
         file_name = 'level_1.json'
@@ -69,6 +70,16 @@ class Level:
                 box_type = box_data['type']
 
                 self.box_group.add(box.Box(x, y, box_type))
+
+    def setup_enemies(self):
+        self.enemy_group_dict = {}
+        for enemy_group_data in self.map_data['enemy']:
+            group = pygame.sprite.Group()
+            for enemy_group_id, enemy_list in enemy_group_data.items():
+                for enemy_data in enemy_list:
+                    pass
+                    # group.add(enemy.create_enemy(enemy_data))
+                self.enemy_group_dict[enemy_group_id] = group
 
     def update(self, surface, keys):
         self.current_time = pygame.time.get_ticks()
@@ -152,6 +163,10 @@ class Level:
 
         self.brick_group.draw(self.game_ground)
         self.box_group.draw(self.game_ground)
+
+        for enemy_group in self.enemy_group_dict.values():
+            enemy_group.draw(self.game_ground)
+
 
         surface.blit(self.game_ground, (0, 0), self.game_window)
         self.info.draw(surface)
