@@ -5,15 +5,17 @@ from .. import constants as C
 
 def create_enemy(enemy_data):
     enemy_type = enemy_data['type']
-    x, y, direction, color = enemy_data['x'], enemy_data['y'], enemy_data['direction'], enemy_data['color']
+    x, y_bottom, direction, color = enemy_data['x'], enemy_data['y'], enemy_data['direction'], enemy_data['color']
 
     if enemy_type == 0:
-        enemy = Goomba(x, y, direction, "goomba", color)
+        enemy = Goomba(x, y_bottom, direction, "goomba", color)
     elif enemy_type == 1:
-        enemy = Koopa(x, y, direction, "koopa", color)
+        enemy = Koopa(x, y_bottom, direction, "koopa", color)
+
+    return enemy
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y, direction, name, frame_rects):
+    def __init__(self, x, y_bottom, direction, name, frame_rects):
         pygame.sprite.Sprite.__init__(self)
         self.direction = direction
         self.name =name
@@ -26,7 +28,13 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.frames[self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.x = x
-        self.rect.y = y
+        self.rect.bottom = y_bottom
+
+        self.timer = 0
+        self.x_vel = -1 * C.ENEMY_MULTI if self.direction == 0 else C.ENEMY_MULTI
+        self.y_vel = 0
+        self.gravity = C.GRAVITY
+        self.state = 'walk'
 
     def load_frames(self, frame_rects):
         for frame_rect in frame_rects:
@@ -35,8 +43,56 @@ class Enemy(pygame.sprite.Sprite):
             self.left_frames.append(left_frame)
             self.right_frames.append(right_frame)
 
+    def update(self, level):
+        self.current_time = pygame.time.get_ticks()
+        self.handle_states()
+        self.update_position(level)
+
+    def handle_states(self):
+        if self.state == 'walk':
+            self.walk()
+        elif self.state == 'fall':
+            self.fall()
+        elif self.state == 'die':
+            self.die()
+        elif self.trampled == 'trampled':
+            self.trampled()
+    def walk(self):
+        if self.current_time - self.timer > 125:
+            self.frame_index = (self.frame_index + 1) % 2
+            self.image = self.frames[self.frame_index]
+            self.timer = self.current_time
+
+    def fall(self):
+        if self.y_vel < 10:
+            self.y_vel += self.gravity
+
+    def update_position(self, level):
+        self.rect.x += self.x_vel
+        self.check_x_collisions(level)
+        self.rect.y += self.y_vel
+        self.check_y_collisions(level)
+
+    def check_x_collisions(self, level):
+        sprite = pygame.sprite.spritecollideany(self, level.ground_items_group)
+        if sprite:
+            self.direction = 1 if self.direction == 0 else 0
+            self.x_vel *= -1
+
+    def check_y_collisions(self, level):
+        check_group = pygame.sprite.Group(level.ground_items_group, level.box_group, level.brick_group)
+        sprite = pygame.sprite.spritecollideany(self, check_group)
+        if sprite:
+            if self.rect.top < sprite.rect.top:
+                self.rect.bottom = sprite.rect.top
+                self.y_vel = 0
+                self.state = 'walk'
+
+        level.check_will_fall(self)
+
+
 class Goomba(Enemy):
-    def __init__(self, x, y, direction, name, color):
+    def __init__(self, x, y_bottom, direction, name, color):
         bright_frame_rects = [(0, 16, 16, 16), (16, 16, 16, 16), (32, 16, 16, 16)]
         dark_frame_rects = [(0, 48, 16, 16), (16, 48, 16, 16), (32, 48, 16, 16)]
 
@@ -45,9 +101,9 @@ class Goomba(Enemy):
         else:
             frame_rects = dark_frame_rects
 
-        Enemy.__init__(self, x, y, direction, name, frame_rects)
+        Enemy.__init__(self, x, y_bottom, direction, name, frame_rects)
 class Koopa(Enemy):
-    def __init__(self, x, y, direction, name, color):
+    def __init__(self, x, y_bottom, direction, name, color):
         bright_frame_rects = [(96, 9, 16, 22), (112, 9, 16, 22), (160, 9, 16, 22)]
         dark_frame_rects = [(96, 73, 16, 22), (112, 72, 16, 22), (160, 72, 16, 22)]
 
@@ -56,4 +112,4 @@ class Koopa(Enemy):
         else:
             frame_rects = dark_frame_rects
 
-        Enemy.__init__(self, x, y, direction, name, frame_rects)
+        Enemy.__init__(self, x, y_bottom, direction, name, frame_rects)
